@@ -18,10 +18,9 @@ class TodoController extends Controller
     public function getAllTodos(Request $request)
     {
         try {
-            // dd("A");
-            // $user = Auth::user();
-            // $user_id = $user->id;
-            $user_id = 1;
+            $user = Auth::user();
+            $user_id = $user->id;
+            
             $request->validate([
                 'team_id' => 'integer',
                 'project_id' => 'integer',
@@ -35,8 +34,8 @@ class TodoController extends Controller
                     t.start_time,
                     t.deadline,
                     t.project_id,
-                    p.title project_name,
-                    te.name team_name
+                    COALESCE(p.title, '') project_name,
+                    COALESCE(te.name, '') team_name
                 FROM todos t
                 LEFT JOIN todos_users tou ON tou.user_id = :user_id
                 LEFT JOIN team_user tu ON tu.user_id = :user_id AND tu.team_id = :team_id
