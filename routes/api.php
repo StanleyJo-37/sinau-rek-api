@@ -10,11 +10,12 @@ Route::get('/user', function (Request $request) {
 
 Route::middleware('auth:sanctum')->group(function() {
     
-    Route::group('/todos', function() {
+    Route::prefix('/todos')->group(function() {
         Route::get('/all', [TodoController::class, 'getAllTodos']);
         Route::get('/get/{todo_id}', [TodoController::class, 'getTodo']);
-        Route::post('/create/{todo_id}', [TodoController::class, 'createTodo']);
+        Route::post('/create', [TodoController::class, 'createTodo']);
         Route::patch('/edit/{todo_id}', [TodoController::class, 'editTodo']);
         Route::delete('/delete/{todo_id}', [TodoController::class, 'deleteTodo']);
     });
+    
 });

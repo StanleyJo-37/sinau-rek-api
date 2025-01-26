@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Todo;
+use App\Models\TodoProject;
+use App\Models\TodoUser;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -15,9 +18,10 @@ class TodoController extends Controller
     public function getAllTodos(Request $request)
     {
         try {
-            $user = Auth::user();
-            $user_id = $user->id;
-            
+            // dd("A");
+            // $user = Auth::user();
+            // $user_id = $user->id;
+            $user_id = 1;
             $request->validate([
                 'team_id' => 'integer',
                 'project_id' => 'integer',
@@ -36,7 +40,7 @@ class TodoController extends Controller
                 FROM todos t
                 LEFT JOIN todos_users tou ON tou.user_id = :user_id
                 LEFT JOIN team_user tu ON tu.user_id = :user_id AND tu.team_id = :team_id
-                LEFT JOIN teams te ON te.team_id = tu.team_id
+                LEFT JOIN teams te ON te.id = tu.team_id
                 LEFT JOIN projects p ON p.id = t.project_id
                 WHERE t.project_id = :project_id;
             ", [
@@ -53,7 +57,10 @@ class TodoController extends Controller
             return response()->json($todos);
         } catch (Exception $err) {
             return response()->json(
-                ['message' => 'Error fetching todos. Please try again later.'],
+                [
+                    'message' => 'Error fetching todos. Please try again later.',
+                    'error' => $err->getMessage(),
+                ],
                 500
             );
         }
@@ -72,15 +79,19 @@ class TodoController extends Controller
                     t.description,
                     t.start_time,
                     t.deadline,
-                    t.project_id,
+                    p.id,
+                    COALESCE(p.title, '') project_title
                 FROM todos t
-                WHERE t.todo_id = :todo_id;
+                LEFT JOIN todos_users tu ON tu.user_id = :user_id
+                LEFT JOIN projects p ON p.id = t.project_id
+                WHERE t.id = :todo_id;
             ", [
                 'todo_id' => $todo_id,
+                'user_id' => $user_id,
             ]);
 
             $todo = null;
-            if (! empty($todos) && isset($todos[0])) {
+            if (! empty($todos) && ! isset($todos[0])) {
                 $todo = $todos[0];
             } else {
                 return response()->json(
@@ -95,9 +106,121 @@ class TodoController extends Controller
             return response()->json($todo);
         } catch (Exception $err) {
             return response()->json(
-                ['message' => 'Error fetching todos. Please try again later.'],
+                [
+                    'message' => 'Error fetching todo. Please try again later.',
+                    'error' => $err->getMessage(),
+                ],
                 500
             );
         }
     }
+
+    public function createTodo(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $user_id = $user->id;
+
+            $request->validate([
+                'title' => 'string|required',
+                'description' => 'string|required',
+                'start_time' => 'date',
+                'deadline' => 'date',
+                'project_id' => 'integer',
+            ]);
+
+            $start_time = $request->start_time ? Carbon::parse($request->start_time)->setTimezone('UTC')->toDayDateTimeString() : null;
+            $deadline = $request->deadline ? Carbon::parse($request->deadline)->setTimezone('UTC')->toDayDateTimeString() : null;
+
+            $now = Carbon::now();
+
+            $todo = Todo::create([
+                'title' => $request->title,
+                'description' => $request->description,
+                'start_time' => $start_time,
+                'deadline' => $deadline,
+                'project_id' => $request->project_id,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+
+            $todo_user = TodoUser::create([
+                'todo_id' => $todo->id,
+                'user_id' => $user_id,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+
+            return response()->json($todo);
+        } catch (Exception $err) {
+            return response()->json(
+                [
+                    'message' => 'Error creating todo. Please try again later.',
+                    'error' => $err->getMessage(),
+                ],
+                500
+            );
+        }
+    }
+
+    public function editTodo(Request $request, int $todo_id)
+    {
+        try {
+            $user = Auth::user();
+            $user_id = $user->id;
+
+            $request->validate([
+                'title' => 'string|required',
+                'description' => 'string|required',
+                'start_time' => 'date',
+                'deadline' => 'date',
+                'project_id' => 'integer',
+            ]);
+
+            $start_time = $request->start_time ? Carbon::parse($request->start_time)->setTimezone('UTC')->toDayDateTimeString() : null;
+            $deadline = $request->deadline ? Carbon::parse($request->deadline)->setTimezone('UTC')->toDayDateTimeString() : null;
+
+            $now = Carbon::now();
+
+            $todo = Todo::findOrFail($todo_id);
+            $todo->title = $request->title;
+            $todo->description = $request->description;
+            $todo->start_time = $start_time;
+            $todo->deadline = $deadline;
+            $todo->updated_at = $now;
+            $todo->save();
+
+            return response()->json($todo);
+        } catch (Exception $err) {
+            return response()->json(
+                [
+                    'message' => 'Error creating todo. Please try again later.',
+                    'error' => $err->getMessage(),
+                ],
+                500
+            );
+        }
+    }
+
+    public function deleteTodo(int $todo_id)
+    {
+        try {
+            $user = Auth::user();
+            $user_id = $user->id;
+
+            $todo = Todo::findOrFail($todo_id);
+            $todo->delete();
+
+            return response()->json($todo);
+        } catch (Exception $err) {
+            return response()->json(
+                [
+                    'message' => 'Error creating todo. Please try again later.',
+                    'error' => $err->getMessage(),
+                ],
+                500
+            );
+        }
+    }
+
 }
