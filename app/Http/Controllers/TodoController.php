@@ -54,11 +54,11 @@ class TodoController extends Controller
             }
 
             return response()->json($todos);
-        } catch (Exception $err) {
+        } catch (Exception $e) {
             return response()->json(
                 [
                     'message' => 'Error fetching todos. Please try again later.',
-                    'error' => $err->getMessage(),
+                    'error' => $e->getMessage(),
                 ],
                 500
             );
@@ -103,11 +103,11 @@ class TodoController extends Controller
             $todo->deadline = Carbon::parse($todo->deadline)->setTimezone('Asia/Indonesia')->toDayDateTimeString();
 
             return response()->json($todo);
-        } catch (Exception $err) {
+        } catch (Exception $e) {
             return response()->json(
                 [
                     'message' => 'Error fetching todo. Please try again later.',
-                    'error' => $err->getMessage(),
+                    'error' => $e->getMessage(),
                 ],
                 500
             );
@@ -117,6 +117,7 @@ class TodoController extends Controller
     public function createTodo(Request $request)
     {
         try {
+            DB::beginTransaction();
             $user = Auth::user();
             $user_id = $user->id;
 
@@ -150,12 +151,14 @@ class TodoController extends Controller
                 'updated_at' => $now,
             ]);
 
+            DB::commit();
+
             return response()->json($todo);
-        } catch (Exception $err) {
+        } catch (Exception $e) {
             return response()->json(
                 [
                     'message' => 'Error creating todo. Please try again later.',
-                    'error' => $err->getMessage(),
+                    'error' => $e->getMessage(),
                 ],
                 500
             );
@@ -165,8 +168,9 @@ class TodoController extends Controller
     public function editTodo(Request $request, int $todo_id)
     {
         try {
+            DB::beginTransaction();
+
             $user = Auth::user();
-            $user_id = $user->id;
 
             $request->validate([
                 'title' => 'string|required',
@@ -189,12 +193,14 @@ class TodoController extends Controller
             $todo->updated_at = $now;
             $todo->save();
 
+            DB::commit();
+
             return response()->json($todo);
-        } catch (Exception $err) {
+        } catch (Exception $e) {
             return response()->json(
                 [
                     'message' => 'Error creating todo. Please try again later.',
-                    'error' => $err->getMessage(),
+                    'error' => $e->getMessage(),
                 ],
                 500
             );
@@ -204,18 +210,21 @@ class TodoController extends Controller
     public function deleteTodo(int $todo_id)
     {
         try {
+            DB::beginTransaction();
+
             $user = Auth::user();
-            $user_id = $user->id;
 
             $todo = Todo::findOrFail($todo_id);
             $todo->delete();
 
+            DB::commit();
+
             return response()->json($todo);
-        } catch (Exception $err) {
+        } catch (Exception $e) {
             return response()->json(
                 [
                     'message' => 'Error creating todo. Please try again later.',
-                    'error' => $err->getMessage(),
+                    'error' => $e->getMessage(),
                 ],
                 500
             );
