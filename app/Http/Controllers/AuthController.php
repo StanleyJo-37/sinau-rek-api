@@ -7,21 +7,66 @@ use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Exception;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
-    //
+    /**
+     * Create a new Sanctum token.
+     * 
+     * @return \Illuminate\Cookie\CookieJar|\Symfony\Component\HttpFoundation\Cookie
+     */
+    private function createToken(User $user): \Illuminate\Cookie\CookieJar|\Symfony\Component\HttpFoundation\Cookie
+    {
+        $token = $user->createToken(
+            'sinau_rek_token',
+            ['*'],
+            now()->addMinutes((int)config('session.lifetime'))
+        )->plainTextToken;
+
+        $user->token = $token;
+        
+        $cookie = cookie(
+            'sinau_rek_token',
+            $token,
+            config('session.lifetime')
+        );
+
+        return $cookie;
+    }
+
     public function register(RegisterRequest $request)
     {
+        try {
+            $user = $request->register();
 
+            if (! $user) {
+                return response()->json([
+                    'message' => 'Failed to register. Please try again later.',
+                ], 401);
+            }
+
+            $cookie = $this->createToken($user);
+
+            return response()
+                    ->json([
+                        'user' => new UserResource($user),
+                        'message' => 'Registeration Successful.',
+                    ])
+                    ->withCookie($cookie);
+        } catch (Exception $e) {
+            return response()->json(
+                [
+                    'message' => 'Error registering. Please try again later.',
+                    'error' => $e->getMessage(),
+                ],
+                500
+            );
+        }
     }
 
     public function login(LoginRequest $request)
     {  
-        try
-        {
+        try {
             $user = $request->authenticate();
 
             if (! $user) {
@@ -30,17 +75,7 @@ class AuthController extends Controller
                 ], 401);
             }
 
-            $token = $user->createToken(
-                'sinau_rek_token',
-                ['*'],
-                now()->addMinutes(config('session.lifetime')),
-            )->plainTextToken;
-            
-            $cookie = cookie(
-                'sinau_rek_token',
-                $token,
-                config('session.lifetime'),
-            );
+            $cookie = $this->createToken($user);
 
             return response()
                     ->json([
@@ -49,8 +84,7 @@ class AuthController extends Controller
                     ])
                     ->withCookie($cookie);
         }
-        catch (Exception $e)
-        {
+        catch (Exception $e) {
             return response()->json(
                 [
                     'message' => 'Error logging in. Please try again later.',

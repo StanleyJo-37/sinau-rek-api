@@ -27,6 +27,7 @@ class LoginRequest extends FormRequest
             //
             'email' => 'email|required',
             'password' => 'string|min:8|required',
+            'remember' => 'boolean|nullable',
         ];
     }
 
@@ -38,11 +39,6 @@ class LoginRequest extends FormRequest
     public function credentials(): array
     {
         return $this->only('email', 'password');
-    }
-
-    public function rememberMe(): bool
-    {
-        return $this->boolean("remember");
     }
 
     private function failedLogin()
@@ -57,7 +53,7 @@ class LoginRequest extends FormRequest
      */
     public function authenticate(): ?User
     {
-        if (! Auth::attempt($this->credentials(), $this->rememberMe())) {
+        if (! Auth::attempt($this->validated(), $this->boolean("remember"))) {
             $this->failedLogin();
             return null;
         }
@@ -68,7 +64,7 @@ class LoginRequest extends FormRequest
     /**
      * Get the validated data.
      *
-     * @return array<string>
+     * @return array<mixed>
      */
     public function validatedData(): array
     {
