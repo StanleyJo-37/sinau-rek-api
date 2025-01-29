@@ -18,13 +18,18 @@ Route::prefix('/auth')->group(function() {
 
 Route::middleware('auth:sanctum')->group(function() {
 
-    
     Route::prefix('/todos')->group(function() {
         Route::get('/all', [TodoController::class, 'getAllTodos']);
         Route::get('/get/{todo_id}', [TodoController::class, 'getTodo']);
         Route::post('/create', [TodoController::class, 'createTodo']);
         Route::patch('/edit/{todo_id}', [TodoController::class, 'editTodo']);
-        Route::delete('/delete/{todo_id}', [TodoController::class, 'deleteTodo']);
+        Route::prefix('/completion')->group(function() {
+            Route::post('/update', [TodoController::class, 'updateTodoCompletion']);
+        });
+        Route::prefix('/assign')->group(function() {
+            Route::post('/', [TodoController::class, 'assignUsers']);
+            Route::post('/team', [TodoController::class, 'assignTeam']);
+        });
     });
     
 });
