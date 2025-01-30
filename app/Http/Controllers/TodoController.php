@@ -337,6 +337,7 @@ class TodoController extends Controller
         try {
             $request->validate([
                 'todo_id' => 'required|integer|exists:todos,id',
+                'new_status' => 'boolean',
             ]);
 
             DB::beginTransaction();
@@ -349,7 +350,7 @@ class TodoController extends Controller
                 ['user_id', $user_id],
             ])->firstOrFail();
 
-            $todo->update(['is_done' => ! $todo->is_done]);
+            $todo->update([ 'is_done' => ! $request->new_status ?? true ]);
 
             DB::commit();
 
