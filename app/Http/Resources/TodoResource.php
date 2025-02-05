@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -18,8 +19,8 @@ class TodoResource extends JsonResource
             'id' => $this->id,
             'todo_title' => $this->title,
             'description' => $this->description,
-            'start_time' => $this->start_time,
-            'deadline' => $this->deadline,
+            'start_time' => $this->start_time ?? Carbon::parse($this->start_time),
+            'deadline' => $this->deadline ?? Carbon::parse($this->deadline),
             'project_id' => $this->project_id,
             'project_name' => $this->project_title,
             'team_id' => $this->team_id,
