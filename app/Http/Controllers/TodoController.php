@@ -27,7 +27,6 @@ class TodoController extends Controller
             ]);
 
             $user = Auth::user();
-            $user_id = $user->id;
 
             $todos = DB::select("
                 SELECT
@@ -47,7 +46,7 @@ class TodoController extends Controller
                 LEFT JOIN projects p ON p.id = t.project_id AND p.id = :project_id
                 WHERE tou.user_id = :user_id;
             ", [
-                'user_id' => $user_id,
+                'user_id' => $user->id,
                 'team_id' => $request->team_id,
                 'project_id' => $request->project_id,
             ]);
@@ -80,7 +79,6 @@ class TodoController extends Controller
             ]);
 
             $user = Auth::user();
-            $user_id = $user->id;
 
             $todo = DB::select("
                 SELECT
@@ -92,7 +90,8 @@ class TodoController extends Controller
                     t.project_id,
                     p.title project_title,
                     te.id team_id,
-                    te.name team_name
+                    te.name team_name,
+                    tou.is_done
                 FROM todos t
                 LEFT JOIN todos_users tou ON tou.user_id = :user_id
                 LEFT JOIN team_user tu ON tu.user_id = tou.user_id AND tu.team_id = :team_id
@@ -100,7 +99,7 @@ class TodoController extends Controller
                 LEFT JOIN projects p ON p.id = t.project_id AND p.id = :project_id
                 WHERE t.id = :todo_id;
             ", [
-                'user_id' => $user_id,
+                'user_id' => $user->id,
                 'team_id' => $request->team_id,
                 'project_id' => $request->project_id,
                 'todo_id' => $todo_id,
@@ -114,9 +113,6 @@ class TodoController extends Controller
                     404,
                 );
             }
-            
-            $todo->start_time = $todo->start_time ?? Carbon::parse($todo->start_time);
-            $todo->deadline = $todo->deadline ?? Carbon::parse($todo->deadline);
 
             return response()->json(new TodoResource($todo));
         } catch (Exception $e) {
@@ -144,7 +140,6 @@ class TodoController extends Controller
             DB::beginTransaction();
             
             $user = Auth::user();
-            $user_id = $user->id;
 
             $start_time = $request->start_time ? Carbon::parse($request->start_time)->setTimezone('UTC')->toDayDateTimeString() : null;
             $deadline = $request->deadline ? Carbon::parse($request->deadline)->setTimezone('UTC')->toDayDateTimeString() : null;
@@ -163,7 +158,7 @@ class TodoController extends Controller
 
             $todo_user = TodoUser::create([
                 'todo_id' => $todo->id,
-                'user_id' => $user_id,
+                'user_id' => $user->id,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
@@ -343,11 +338,10 @@ class TodoController extends Controller
             DB::beginTransaction();
 
             $user = Auth::user();
-            $user_id = $user->id;
 
             $todo = TodoUser::where([
                 ['todo_id', $request->todo_id],
-                ['user_id', $user_id],
+                ['user_id', $user->id],
             ])->firstOrFail();
 
             $todo->update([ 'is_done' => ! $request->new_status ?? true ]);
