@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Project extends Model
@@ -18,14 +19,11 @@ class Project extends Model
         'deadline'
     ];
 
-    public function todos(): HasManyThrough
+    public function todos(): HasMany
     {
-        return $this->hasManyThrough(
+        return $this->hasMany(
             Todo::class,
-            TodoProject::class,
             'project_id',
-            'todo_id',
-            'id',
             'id'
         );
     }
